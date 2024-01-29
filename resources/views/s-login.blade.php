@@ -39,7 +39,7 @@
             <div class="card">
                 <div class="card-header">Registro</div>
                 <div class="card-body">
-                    <form id="miFormulario" method="POST" action="{{ route('registroS') }}">
+                    <form id="miFormulario" method="POST" action="{{ route('iniciarsession') }}">
                         @csrf
                         @if ($errors->any())
     <div class="alert alert-danger">
@@ -50,15 +50,7 @@
         </ul>
     </div>
 @endif
-<div class="form-group">
-    <label for="name">Nombre</label>
-    <input type="text" name="name" id="name" class="form-control" pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+" title="Solo se permiten letras y espacios" required>
-    @error('name')
-        <span class="invalid-feedback" role="alert">
-            <strong>{{ $message }}</strong>
-        </span>
-    @enderror
-</div>
+                        
 
                         <div class="form-group">
                             <label for="email">Correo Electrónico</label>
@@ -71,15 +63,7 @@
                         </div>
 
 
-                        <div class="form-group">
-    <label for="phone">Telefono</label>
-    <input type="tel" name="phone" id="phone" class="form-control" pattern="[0-9+\s]+" title="Solo se permiten números y el signo '+'" minlength="10" maxlength="15" required>
-    @error('phone')
-        <span class="invalid-feedback" role="alert">
-            <strong>{{ $message }}</strong>
-        </span>
-    @enderror
-</div>
+                       
 
 
 
@@ -99,10 +83,7 @@
             @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label for="password_confirmation">Confirmar Contraseña</label>
-                            <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
-                        </div>
+                        
 
                         <!-- <button type="submit" class="btn btn-primary">Enviar Datos</button> -->
                         <button class="g-recaptcha btn btn-primary" 

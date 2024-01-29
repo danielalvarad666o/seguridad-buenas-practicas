@@ -84,6 +84,5 @@
 </script>
 <script src="{{ asset('js/sms.js') }}"></script>
 
-
 </body>
 </html>

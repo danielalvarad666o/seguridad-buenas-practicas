@@ -21,31 +21,35 @@ use Illuminate\Http\Request;
 // Route::get('/', function () {
 //     return view('auth.register'); // Redirige directamente a la vista de registro
 // });
+Auth::routes();
+
 
 Route::get('/', function () {
     return view('s-Registro'); // Redirige directamente a la vista de registro
 });
 
+// Rutas para registro y login
+Route::middleware(['guest'])->group(function () {
+    Route::post('/registroUsuario', [usuarioController::class, 'crearUser'])->name('registroS');
+    Route::post('/smsVerificacion', [usuarioController::class, 'verificarUser'])->name('smsVerificacion');
+    Route::post('/iniciarsession', [usuarioController::class, 'login'])->name('iniciarsession');
+    Route::get('/login', function () {
+        return view('s-login');
+    })->name('login');
+ });
+
+// Ruta de inicio con middleware Sanctum
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/inicio', function () {
+        return view('s-home');
+    })->name('inicio');
 
 
-//  Route::get('/code/{userId}', [registroController::class, 'sms'])->name('code');
+    Route::get('/logout', [usuarioController::class, 'logout'])->name('logout');
+});
 
+// Otras rutas
 Route::get('/vistaCode/{userId}', [usuarioController::class, 'vistaCode'])->name('code');
-
-
-
-
-// Route::get('/sms/{userId}', function ($userId) { return view('s-code', ['userId' => $userId]); })->name('code');
-
-Route::post('/registroUsuario', [usuarioController::class, 'crearUser'])->name('registroS');
-
-Route::post('/smsVerificacion', [usuarioController::class, 'verificarUser'])->name('smsVerificacion');
-
-Auth::routes();
-
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-
-Route::match(['get', 'post'], '{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew');
-
+Route::match(['get', 'post'], 'smsNew/{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew');
 
 
