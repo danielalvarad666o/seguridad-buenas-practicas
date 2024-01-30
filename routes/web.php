@@ -31,8 +31,12 @@ Route::get('/', function () {
 // Rutas para registro y login
 Route::middleware(['guest'])->group(function () {
     Route::post('/registroUsuario', [usuarioController::class, 'crearUser'])->name('registroS');
+
+
     Route::post('/smsVerificacion', [usuarioController::class, 'verificarUser'])->name('smsVerificacion');
+    
     Route::post('/iniciarsession', [usuarioController::class, 'login'])->name('iniciarsession');
+    
     Route::get('/login', function () {
         return view('s-login');
     })->name('login');
@@ -49,7 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Otras rutas
-Route::get('/vistaCode/{userId}', [usuarioController::class, 'vistaCode'])->name('code');
-Route::match(['get', 'post'], 'smsNew/{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew');
+Route::get('/vistaCode/{userId}', [usuarioController::class, 'vistaCode'])->name('code')->middleware('admin');
+Route::match(['get', 'post'], 'smsNew/{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew')->middleware('checkRole:administrador');;
 
 

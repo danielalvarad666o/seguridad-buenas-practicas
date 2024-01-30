@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class sms implements ShouldQueue
 {
@@ -38,6 +39,7 @@ class sms implements ShouldQueue
             'to' => "52{$this->numero}",
             'text' => "tu numero de verificacion es: {$this->numero_aleatorio}",
         ]);
+        Log::info('Respuesta de vonage: ' . $responseSMS);
         
     }
 }

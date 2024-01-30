@@ -124,6 +124,7 @@ class usuarioController extends Controller
 
                    if ($user->rol_id==1){
                     session()->flash('mensaje', '¡Usuario registrado correctamente!');
+                    
                      
            $url = URL::temporarySignedRoute(
                'code',
@@ -323,6 +324,7 @@ class usuarioController extends Controller
 
        
                            if ($user->save()) {
+                            
                                sms::dispatch($user->phone, $user->code)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
        
                                $url = URL::temporarySignedRoute(
