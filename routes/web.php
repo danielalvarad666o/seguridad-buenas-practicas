@@ -24,12 +24,14 @@ use Illuminate\Http\Request;
 Auth::routes();
 
 
-Route::get('/', function () {
-    return view('s-Registro'); // Redirige directamente a la vista de registro
-});
+
 
 // Rutas para registro y login
 Route::middleware(['guest'])->group(function () {
+    Route::get('/', function () {
+        return view('s-Registro'); // Redirige directamente a la vista de registro
+    });
+    
     Route::post('/registroUsuario', [usuarioController::class, 'crearUser'])->name('registroS');
 
 
@@ -43,7 +45,7 @@ Route::middleware(['guest'])->group(function () {
  });
 
 // Ruta de inicio con middleware Sanctum
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum','throttle'])->group(function () {
     Route::get('/inicio', function () {
         return view('s-home');
     })->name('inicio');
@@ -53,7 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Otras rutas
-Route::get('/vistaCode/{userId}', [usuarioController::class, 'vistaCode'])->name('code')->middleware('admin');
-Route::match(['get', 'post'], 'smsNew/{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew')->middleware('checkRole:administrador');;
+Route::get('/vistaCode/{userId}', [usuarioController::class, 'vistaCode'])->name('code')->middleware('admin','signed','throttle');
+Route::match(['get', 'post'], 'smsNew/{userId}', [usuarioController::class, 'resetSMS'])->name('smsNew')->middleware('checkRole:administrador','throttle');;
 
 

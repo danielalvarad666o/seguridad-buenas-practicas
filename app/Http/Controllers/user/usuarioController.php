@@ -4,19 +4,12 @@ namespace App\Http\Controllers\user;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
-
-
 use Illuminate\Support\Facades\Validator;
-
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
-
 use App\Jobs\sms;
 use App\Models\User;
-
-
-
-
+use App\Http\Controllers\servicios\servicioController;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -34,10 +27,7 @@ class usuarioController extends Controller
 
 
        public function crearUser(Request $request)
-       {
-
-        
-       
+       {       
            try {
                //validar las petriciones
                $key = 'registro-' . $request->ip();
@@ -51,11 +41,12 @@ class usuarioController extends Controller
                    throw new ThrottleRequestsException('Demasiados intentos. Por favor, inténtelo de nuevo en ' . $seconds . ' segundos.');
                }
                //validacion recaptcha
-               $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                   'secret' => env('RECAPTCHA_SECRET'),
-                   'response' => $request->input('g-recaptcha-response')
-               ])->object();
-       
+               $serviciosController = new servicioController();
+               $response = $serviciosController->verificarRecaptcha($request);
+               if (Auth::check()) {
+                // Si el usuario ya está autenticado, redirigirlo a otra página, por ejemplo, la página de inicio
+                return redirect()->route('inicio');
+            }
                
                if ($response->success == true && $response->score >= 0.7) {
                 $validacion = Validator::make($request->all(), [
@@ -102,15 +93,15 @@ class usuarioController extends Controller
                    $users = User::all();
                    $variableResultado = $users->isEmpty() ? 1 : 2;
                    
+                   $codigoCifrado = Crypt::encryptString($numero_aleatorio);
                    
-       
                        $user = User::create([
                            'name' => $request->name,
                            'email' => $request->email,
                            'password' => Hash::make($request->password),
                            'phone' => $request->phone,
                            'rol_id'=>$variableResultado,
-                           'code' => $numero_aleatorio,
+                           'code' => $codigoCifrado,
                        ]);
                    
                        
@@ -118,7 +109,8 @@ class usuarioController extends Controller
                    
                    
                    if ($user->save()){
-                  sms::dispatch($request->phone,$numero_aleatorio)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
+                    Log::info('Se a creado un usuario : ' . $user);
+                  #sms::dispatch($request->phone,$numero_aleatorio)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
                    
 
 
@@ -128,10 +120,10 @@ class usuarioController extends Controller
                      
            $url = URL::temporarySignedRoute(
                'code',
-               now()->addMinutes(20),
+               now()->addMinutes(10),
                ['userId' => $user->id]
            );
-       
+           sms::dispatch($user->phone, $user->code)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
            
            return redirect()->to($url);
                
@@ -150,7 +142,7 @@ class usuarioController extends Controller
        
        
                    }else{
-                       session()->flash('error', '¡El uauario no se pudo guardar intentelo de nuevo!');
+                       session()->flash('error', '¡El usuario no se pudo guardar intentelo de nuevo!');
                    }
        
                    
@@ -159,6 +151,7 @@ class usuarioController extends Controller
                    session()->flash('error', 'Erros de sistema. Por favor, inténtelo de nuevo.');
                }
            } catch (\Exception $e) {
+            
                // Capturar y manejar la excepción, puedes loguearla, enviar notificaciones, etc.
                session()->flash('error', 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.');
                
@@ -168,6 +161,9 @@ class usuarioController extends Controller
            return redirect('/');
        }
        
+
+ 
+
        
        public function resetSMS($userId)
        {
@@ -175,10 +171,13 @@ class usuarioController extends Controller
            try {
                // Utilizar $userId en tu lógica
                $user = User::find($userId);
+
+               $codigoDescifrado = Crypt::decryptString($user->code);
    
                if ($user) {
                    sms::dispatch($user->phone, $user->code)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
-                   return back()->with('mensaje', 'Mensaje enviado de nuevo.');
+                   Log::info('se a enviado un sms alusuario : ' . $user->id);
+                   return back()->with('mensaje', 'Mensaje enviado de nuevo.'.$codigoDescifrado);
                } else {
                    return back()->with('error', 'Usuario no encontrado.');
                }
@@ -186,10 +185,10 @@ class usuarioController extends Controller
                // Manejar la excepción
                Log::error('Error en resetSMS: ' . $e->getMessage());
    
-               // Puedes agregar más información al log si es necesario
+               
                Log::error('Trace: ' . $e->getTraceAsString());
    
-               // Puedes personalizar el mensaje de error devuelto al usuario si lo deseas
+               
                return back()->with('error', 'Ocurrió un error al enviar el mensaje.');
            }
        }
@@ -197,6 +196,7 @@ class usuarioController extends Controller
 
 
        public function verificarUser(Request $request){
+        
         
         try {
             $key = 'registro-' . $request->ip();
@@ -225,21 +225,31 @@ class usuarioController extends Controller
                     'code.numeric' => 'El campo código debe ser numérico.',
     
                 ]);
+                
+                
+                
+                $user = User::first();
+                $codigoDescifrado = Crypt::decryptString($user->code);
+                
 
-                $user = User::where('code', $request->code)->first();
+               
+                
 
-                if (!$user) {
+
+                if ($request->code!=$codigoDescifrado) {
                     // Manejar el caso cuando el usuario no se encuentra
                     return redirect()->intended('/')
                         ->with('error', 'Código de usuario no válido.')
                         ->withInput();
                 }else{
 
+                    
                     if($user->status==0){
                     $user->status=1;
                     $user->save;
                     if ($user->save()){
                         session()->flash('mensaje', '¡Ya puede Iniciar Session!');
+                        Log::info('verifico el code el usuario : ' . $user->id);
                         return redirect()->route("iniciarSesion");
                         
                     }
@@ -288,11 +298,14 @@ class usuarioController extends Controller
                    $seconds = $limiter->availableIn($key);
                    throw new TooManyRequestsHttpException($seconds, 'Demasiados intentos. Por favor, inténtelo de nuevo en ' . $seconds . ' segundos.');
                }
+
+               if (Auth::check()) {
+                // Si el usuario ya está autenticado, redirigirlo a otra página, por ejemplo, la página de inicio
+                return redirect()->route('inicio');
+            }
        
-               $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                   'secret' => env('RECAPTCHA_SECRET'),
-                   'response' => $request->input('g-recaptcha-response'),
-               ])->object();
+               $serviciosController = new servicioController();
+               $response = $serviciosController->verificarRecaptcha($request);
        
                if ($response->success && $response->score >= 0.7) {
                    $validacion = Validator::make($request->all(), [
@@ -318,8 +331,9 @@ class usuarioController extends Controller
                         
                            srand(time());
                            $numero_aleatorio = rand(5000, 6000);
+                           $codigoCifrado = Crypt::encryptString($numero_aleatorio);
        
-                           $user->code = $numero_aleatorio;
+                           $user->code = $codigoCifrado;
                            $user->save;
 
        
@@ -332,9 +346,11 @@ class usuarioController extends Controller
                                    now()->addMinutes(20),
                                    ['userId' => $user->id]
                                );
-       
+                               
+                              
                                return redirect()->to($url);
                            } else {
+                            
                                session()->flash('error', 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.');
                                Log::info('el Usuario no pudo entrar : ' . $user->id);
                                return redirect()->route('login');
@@ -347,8 +363,9 @@ class usuarioController extends Controller
                            return redirect()->route('login');
 
                         }else{
-                            Auth::login($user); 
-                            session()->flash('mensaje', 'Bienvenido');
+                            Auth::login($user);
+                            
+                            
                            Log::info('Usuario normal sesión iniciada correctamente: ' . $user->id);
                            return redirect()->route('inicio');
                         }
@@ -364,6 +381,8 @@ class usuarioController extends Controller
                        } else {
                            session()->flash('mensaje', 'Bienvenido');
                            Log::info('Usuario normal sesión iniciada correctamente: ' . $user->id);
+
+
                            return redirect()->route('inicio');
                        }
                    } else {
@@ -388,49 +407,58 @@ class usuarioController extends Controller
        
        public function vistaCode(Request $request, $idUser)
        {
-
-        
-        $user = User::where('id',$idUser)->first();
-        
-
-        if(!$user){
-            session()->flash('error', 'Erros de sistema. Por favor, inténtelo de nuevo.');
-            return redirect('/');
-        }
-
-           // Verifica la validez dela firma
-           if (!$request->hasValidSignature()) {
+           try {
+               $user = User::findOrFail($idUser);
        
-            
-               session()->flash('error', 'Erros de sistema. Por favor, inténtelo de nuevo.');
-               
-
-               if ($user->status==0){
-               return redirect('/');
-               }else{
-                return redirect()->route("iniciarSesion");
+               // Verifica la validez de la firma
+               if (!$request->hasValidSignature()) {
+                   session()->flash('error', 'Errores de sistema. Por favor, inténtelo de nuevo.');
+       
+                   if ($user->status == 0) {
+                       return redirect('/');
+                   } else {
+                       return redirect()->route("iniciarSesion");
+                   }
                }
-               
-           }
-           if($user->status==0){
        
-           // Procesa la solicitud y devuelve la vista
-           return view('s-code', ['idUser' => $idUser]);
+               if ($user->status == 0) {
+                   // Procesa la solicitud y devuelve la vista
+                   return view('s-code', ['idUser' => $idUser]);
+               }
+       
+               return view('s-smsLogin', ['idUser' => $idUser]);
+           } catch (\Exception $e) {
+               Log::error('Excepción en vistaCode: ' . $e->getMessage());
+               session()->flash('error', 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.');
+               return redirect('/');
            }
-           return view('s-smsLogin', ['idUser' => $idUser]);
        }
+       
 
+      
+       
        public function logout()
        {
-           Auth::guard('web')->logout();
+           try {
+               Auth::guard('web')->logout();
        
-           // Si estás utilizando Sanctum, revoca el token
-           Auth::guard('sanctum')->user()->tokens()->each(function ($token, $key) {
-               $token->delete();
-           });
-           session()->flash('error', 'Session cerrada');
+               // Revocar tokens Sanctum si estás utilizando Sanctum
+               $user = Auth::guard('sanctum')->user();
+               
+               if ($user) {
+                   $user->tokens()->each(function ($token, $key) {
+                       $token->delete();
+                   });
+               }
+       
+               session()->flash('mensaje', 'Sessión cerrada correctamente');
+           } catch (\Exception $e) {
+               Log::error('Excepción durante el cierre de sesión: ' . $e->getMessage());
+               session()->flash('error', 'Ocurrió un error inesperado al cerrar sessión');
+           }
        
            return redirect('/');
        }
+       
            
 }

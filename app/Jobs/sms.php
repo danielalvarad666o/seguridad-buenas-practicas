@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
 
 class sms implements ShouldQueue
 {
@@ -32,12 +33,13 @@ class sms implements ShouldQueue
     public function handle(): void
     {
         //
+        $codigoDescifrado = Crypt::decryptString($this->numero_aleatorio);
         $responseSMS = Http::post('https://rest.nexmo.com/sms/json', [
             "from" => "Vonage APIs",
             'api_key' => env('VONAGE_API_KEY'),
             'api_secret' => env('VONAGE_API_SECRET'),
             'to' => "52{$this->numero}",
-            'text' => "tu numero de verificacion es: {$this->numero_aleatorio}",
+            'text' => "tu numero de verificacion es: {$codigoDescifrado}",
         ]);
         Log::info('Respuesta de vonage: ' . $responseSMS);
         

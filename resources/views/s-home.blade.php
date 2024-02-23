@@ -23,8 +23,16 @@
     </nav>
 
     <div class="container mt-5">
-        <h1>Bienvenido a la Página de Inicio</h1>
-        <!-- Contenido de la página de inicio aquí -->
+        <div class="jumbotron">
+            <h1 class="display-4">¡Bienvenido a la Página de Inicio!</h1>
+            @if(session('mensaje'))
+                <p class="lead">Eres administrador. ¡Bienvenido!   </p>
+            @else
+                <p class="lead">Eres usuario. ¡Bienvenido!</p>
+            @endif
+            <hr class="my-4">
+            <!-- Contenido adicional de la página de inicio aquí -->
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
