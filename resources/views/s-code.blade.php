@@ -55,6 +55,7 @@
                             <button id="resendButton" class="btn btn-warning" onclick="resendCode()" disabled>Enviar código de nuevo</button>
                         </div>
                         <br>
+                        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SECRET2') }}"></div>
 
                         <!-- Botón para enviar datos -->
                         <button id="btnenviar" class="g-recaptcha btn btn-primary"

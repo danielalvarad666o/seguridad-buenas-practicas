@@ -82,6 +82,7 @@
                 </span>
             @enderror
                         </div>
+                        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SECRET2') }}"></div>
 
                         
 
