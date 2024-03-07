@@ -177,7 +177,7 @@ class usuarioController extends Controller
                if ($user) {
                    sms::dispatch($user->phone, $user->code)->onQueue('sms')->onConnection('database')->delay(now()->addSeconds(2));
                    Log::info('se a enviado un sms alusuario : ' . $user->id);
-                   return back()->with('mensaje', 'Mensaje enviado de nuevo.'.$codigoDescifrado);
+                   return back()->with('mensaje', 'Mensaje enviado de nuevo.');
                } else {
                    return back()->with('error', 'Usuario no encontrado.');
                }

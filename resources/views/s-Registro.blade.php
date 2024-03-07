@@ -104,7 +104,7 @@
                             <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
                         </div>
 
-                        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SECRET2') }}"></div>
+                        
       <br/>
       
 
